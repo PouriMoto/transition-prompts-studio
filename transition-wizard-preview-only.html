@@ -1,0 +1,1342 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Transition Wizard — Prompt Builder</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<style>
+  :root {
+    --bg: #0b1220;
+    --surface: #111827;
+    --surface-2: #1a2436;
+    --border: #1e2d45;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --primary: #22d3ee;
+    --primary-dim: #0891b2;
+    --primary-soft: rgba(34, 211, 238, 0.12);
+    --primary-glow: rgba(34, 211, 238, 0.25);
+    --accent: #67e8f9;
+    --danger: #f87171;
+    --success: #34d399;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Segoe UI', Tahoma, system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 20px 16px 110px;
+    line-height: 1.6;
+  }
+
+  .container { max-width: 1100px; margin: 0 auto; }
+
+  /* —— Header —— */
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+
+  h1 {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--primary);
+    letter-spacing: -0.02em;
+  }
+
+  .help-btn {
+    background: var(--primary-dim);
+    color: #fff;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: 600;
+    transition: background 0.2s, transform 0.15s;
+  }
+  .help-btn:hover { background: #0e7490; transform: translateY(-1px); }
+
+  /* —— Live Preview —— */
+  .preview-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .preview-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .preview-header h2 {
+    font-size: 0.95rem;
+    color: var(--primary);
+  }
+
+  .preview-label {
+    font-size: 0.8rem;
+    color: var(--muted);
+    background: var(--surface-2);
+    padding: 4px 12px;
+    border-radius: 999px;
+  }
+
+  .preview-stage-wrap {
+    position: relative;
+    width: 100%;
+    height: 220px;
+    background: #060b14;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+
+  #previewStage {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  #previewStage .base-bg {
+    position: absolute;
+    inset: 0;
+    background: #0a1628;
+    z-index: 0;
+  }
+
+  #previewStage .wipe-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    will-change: transform, clip-path, opacity, filter;
+  }
+
+  #previewStage .word {
+    position: relative;
+    z-index: 5;
+    font-size: 2rem;
+    font-weight: 800;
+    color: #fff;
+    text-shadow: 0 2px 12px rgba(0,0,0,0.4);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .preview-hint {
+    font-size: 0.78rem;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  /* —— Categories —— */
+  .category {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px;
+    margin-bottom: 18px;
+  }
+
+  .category h2 {
+    font-size: 0.95rem;
+    color: var(--primary);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .category h2 .count {
+    background: var(--primary);
+    color: var(--bg);
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 10px;
+  }
+
+  .transition-item {
+    background: var(--surface-2);
+    border: 2px solid transparent;
+    border-radius: 10px;
+    padding: 12px 14px;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    user-select: none;
+    position: relative;
+  }
+  .transition-item:hover {
+    background: #1f2d44;
+    border-color: #2a3f5f;
+  }
+  .transition-item.selected {
+    border-color: var(--primary);
+    background: var(--primary-soft);
+    box-shadow: 0 0 0 1px var(--primary-glow);
+  }
+  .transition-item.previewing {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+
+  .transition-item .name {
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: var(--text);
+  }
+  .transition-item .tech {
+    font-size: 0.7rem;
+    color: var(--muted);
+    font-family: ui-monospace, 'Cascadia Code', monospace;
+  }
+
+  .transition-item .play-icon {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    font-size: 0.7rem;
+    opacity: 0.5;
+  }
+
+  /* —— Settings Panel —— */
+  .settings-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    margin-bottom: 20px;
+    display: none;
+  }
+  .settings-panel.active { display: block; }
+
+  .settings-panel h2 {
+    font-size: 0.95rem;
+    color: var(--primary);
+    margin-bottom: 16px;
+  }
+
+  .settings-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 14px 20px;
+  }
+
+  .setting-row {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .setting-row label {
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+
+  .setting-row input,
+  .setting-row select {
+    background: var(--surface-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 9px 12px;
+    font-size: 0.875rem;
+    font-family: ui-monospace, monospace;
+    width: 100%;
+  }
+  .setting-row input:focus,
+  .setting-row select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-soft);
+  }
+
+  /* —— Generate Bar —— */
+  .generate-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(11, 18, 32, 0.92);
+    backdrop-filter: blur(12px);
+    padding: 14px 16px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    z-index: 100;
+  }
+
+  .btn-primary {
+    background: var(--primary);
+    color: #0b1220;
+    border: none;
+    padding: 13px 28px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    font-weight: 700;
+    transition: transform 0.12s, box-shadow 0.2s;
+  }
+  .btn-primary:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px var(--primary-glow);
+  }
+  .btn-primary:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+
+  .btn-secondary {
+    background: var(--surface-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 13px 22px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    transition: background 0.15s;
+  }
+  .btn-secondary:hover { background: #243447; }
+
+  /* —— Output —— */
+  .output-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    margin-top: 24px;
+    display: none;
+  }
+  .output-panel.active { display: block; }
+
+  .output-panel h2 {
+    font-size: 0.95rem;
+    color: var(--primary);
+    margin-bottom: 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .output-text {
+    background: #060b14;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    font-family: ui-monospace, 'Cascadia Code', monospace;
+    font-size: 0.78rem;
+    color: #cbd5e1;
+    white-space: pre-wrap;
+    max-height: 480px;
+    overflow-y: auto;
+    direction: ltr;
+    text-align: left;
+    line-height: 1.55;
+  }
+
+  .copy-btn {
+    background: var(--primary-dim);
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 600;
+    transition: background 0.15s;
+  }
+  .copy-btn:hover { background: #0e7490; }
+  .copy-btn.copied {
+    background: var(--success);
+    color: #064e3b;
+  }
+
+  /* —— Modal —— */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: none;
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  .modal-backdrop.active { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    max-width: 860px;
+    width: 100%;
+    max-height: 88vh;
+    overflow-y: auto;
+    padding: 28px 24px;
+    position: relative;
+  }
+
+  .modal h2 {
+    color: var(--primary);
+    font-size: 1.2rem;
+    margin-bottom: 20px;
+  }
+
+  .modal h3 {
+    color: var(--accent);
+    font-size: 0.95rem;
+    margin: 22px 0 12px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .modal table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+    margin-bottom: 12px;
+  }
+  .modal table th,
+  .modal table td {
+    text-align: right;
+    padding: 9px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .modal table th {
+    background: var(--surface-2);
+    color: var(--primary);
+    font-weight: 600;
+    font-size: 0.75rem;
+  }
+
+  .modal code {
+    background: #060b14;
+    color: var(--accent);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: ui-monospace, monospace;
+    font-size: 0.75rem;
+  }
+
+  .modal ul {
+    font-size: 0.85rem;
+    color: var(--muted);
+    padding-right: 20px;
+  }
+  .modal ul li { margin-bottom: 6px; }
+
+  .modal-close {
+    position: absolute;
+    top: 14px;
+    left: 14px;
+    background: transparent;
+    color: var(--muted);
+    border: none;
+    font-size: 1.4rem;
+    cursor: pointer;
+    line-height: 1;
+    padding: 4px 8px;
+  }
+  .modal-close:hover { color: #fff; }
+
+  @media (max-width: 600px) {
+    h1 { font-size: 1.15rem; }
+    .grid { grid-template-columns: 1fr 1fr; }
+    .settings-grid { grid-template-columns: 1fr; }
+    .preview-stage-wrap { height: 180px; }
+    #previewStage .word { font-size: 1.5rem; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>🎬 Transition Wizard — Prompt Builder</h1>
+    <button class="help-btn" id="helpBtn">📖 راهنمای ترانزیشن‌ها</button>
+  </header>
+
+  <!-- Live Preview -->
+  <div class="preview-section">
+    <div class="preview-header">
+      <h2>▶️ پیش‌نمایش زنده</h2>
+      <span class="preview-label" id="previewLabel">روی هر ترانزیشن کلیک کنید</span>
+    </div>
+    <div class="preview-stage-wrap">
+      <div id="previewStage">
+        <div class="base-bg"></div>
+        <div class="word" id="previewWord">SLAM</div>
+      </div>
+    </div>
+    <p class="preview-hint">کلیک روی هر آیتم → پخش پیش‌نمایش · دوبار کلیک یا انتخاب برای افزودن به لیست</p>
+  </div>
+
+  <div id="categories"></div>
+
+  <div class="settings-panel" id="settingsPanel">
+    <h2>⚙️ تنظیمات انیمیشن</h2>
+    <div class="settings-grid">
+      <div class="setting-row">
+        <label>مدت هر صحنه (ثانیه)</label>
+        <input type="number" id="sceneDur" value="2" min="0.5" max="10" step="0.1">
+      </div>
+      <div class="setting-row">
+        <label>مدت پرده ترانزیشن (ثانیه)</label>
+        <input type="number" id="wipeDur" value="1.4" min="0.2" max="8" step="0.1">
+      </div>
+      <div class="setting-row">
+        <label>Ease ورود پرده</label>
+        <select id="wipeEase">
+          <option value="power2.inOut">power2.inOut</option>
+          <option value="power3.inOut">power3.inOut</option>
+          <option value="power4.out">power4.out</option>
+          <option value="expo.inOut">expo.inOut</option>
+          <option value="back.out(1.7)">back.out(1.7)</option>
+          <option value="none">none (خطی)</option>
+        </select>
+      </div>
+      <div class="setting-row">
+        <label>نسبت ورود کلمه</label>
+        <input type="number" id="wordRatio" value="0.55" min="0.1" max="0.95" step="0.05">
+      </div>
+      <div class="setting-row">
+        <label>مدت ورود کلمه (ثانیه)</label>
+        <input type="number" id="wordIn" value="0.35" min="0.1" max="2" step="0.05">
+      </div>
+      <div class="setting-row">
+        <label>مدت خروج کلمه (ثانیه)</label>
+        <input type="number" id="wordOut" value="0.25" min="0.1" max="2" step="0.05">
+      </div>
+      <div class="setting-row">
+        <label>Ease ورود کلمه</label>
+        <select id="wordEase">
+          <option value="power4.out">power4.out</option>
+          <option value="back.out(1.6)">back.out(1.6)</option>
+          <option value="expo.out">expo.out</option>
+          <option value="elastic.out(1, 0.5)">elastic.out(1, 0.5)</option>
+        </select>
+      </div>
+      <div class="setting-row">
+        <label>مقیاس شروع کلمه</label>
+        <input type="number" id="wordScale" value="1.5" min="0.5" max="3" step="0.1">
+      </div>
+      <div class="setting-row">
+        <label>چرخش شروع کلمه (درجه)</label>
+        <input type="number" id="wordRotation" value="8" min="0" max="45" step="1">
+      </div>
+    </div>
+  </div>
+
+  <div class="output-panel" id="outputPanel">
+    <h2>
+      <span>📋 پرامپت آماده کپی</span>
+      <button class="copy-btn" id="copyBtn">کپی به کلیپ‌بورد</button>
+    </h2>
+    <pre class="output-text" id="outputText"></pre>
+  </div>
+</div>
+
+<div class="generate-bar">
+  <button class="btn-primary" id="generateBtn" disabled>
+    تولید پرامپت (<span id="selectedCount">0</span> ترانزیشن)
+  </button>
+  <button class="btn-secondary" id="clearBtn">پاک کردن</button>
+</div>
+
+<!-- Modal -->
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal">
+    <button class="modal-close" id="modalClose" aria-label="بستن">✕</button>
+    <h2>📖 راهنمای ترانزیشن‌ها</h2>
+
+    <h3>🔧 پارامترهای مشترک کد</h3>
+    <table>
+      <thead>
+        <tr><th>پارامتر</th><th>توضیح</th><th>مقدار نمونه</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>sceneDur</code></td><td>مدت کل هر صحنه</td><td><code>2.0</code></td></tr>
+        <tr><td><code>wipeDur</code></td><td>مدت حرکت پرده ترانزیشن (باید ≤ sceneDur باشد)</td><td><code>1.4</code></td></tr>
+        <tr><td><code>wordRatio</code></td><td>چه کسری از مسیر پرده طی شود تا کلمه ظاهر شود</td><td><code>0.55</code></td></tr>
+        <tr><td><code>wordIn</code></td><td>مدت ورود کلمه (slam)</td><td><code>0.35</code></td></tr>
+        <tr><td><code>wordOut</code></td><td>مدت خروج کلمه</td><td><code>0.25</code></td></tr>
+        <tr><td><code>ease</code></td><td>تابع easing گسپ</td><td><code>power2.inOut</code></td></tr>
+        <tr><td><code>will-change</code></td><td>بهینه‌سازی GPU برای پرده</td><td><code>transform, clip-path</code></td></tr>
+      </tbody>
+    </table>
+
+    <h3>🌐 راهنمای انواع پرده (wipe kinds)</h3>
+    <table>
+      <thead>
+        <tr><th>نام</th><th>تکنیک GSAP</th><th>نکته</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><b>Circle</b></td><td><code>clipPath: circle(0% at 50% 50%)</code> → <code>circle(150% at 50% 50%)</code></td><td>برای پوشش کامل از گوشه، radius ≈ 180% لازم است</td></tr>
+        <tr><td><b>Bar</b></td><td><code>scaleX: 0 → 1</code> یا <code>scaleY</code></td><td>سریع‌ترین ترانزیشن (فقط transform)</td></tr>
+        <tr><td><b>Triangle</b></td><td><code>clipPath: polygon()</code> با نقاط مقصد ۲۰۰٪</td><td>زاویه ۴۵ درجه ساختاری</td></tr>
+        <tr><td><b>Checkerboard</b></td><td>چند <code>div</code> + <code>stagger</code></td><td>stagger از start یا random</td></tr>
+        <tr><td><b>Stripes</b></td><td>نوارهای <code>translateX(-100%)</code> → <code>0%</code></td><td>stagger 0.03 برای حس پرده</td></tr>
+        <tr><td><b>Pixelate</b></td><td>مربع‌های کوچک با <code>scale(0)</code> → <code>scale(1)</code></td><td>stagger از random</td></tr>
+        <tr><td><b>Rotate</b></td><td><code>rotate(90deg) scale(2)</code> → <code>rotate(0) scale(1)</code></td><td>scale اولیه باید بزرگ باشد تا صفحه پوشیده شود</td></tr>
+        <tr><td><b>Split Halves</b></td><td>دو نیمه از بالا/پایین به وسط می‌آیند</td><td>هم‌زمان با یک <code>tl.to</code></td></tr>
+      </tbody>
+    </table>
+
+    <h3>🎨 پارامترهای بصری</h3>
+    <table>
+      <thead>
+        <tr><th>پارامتر</th><th>توضیح</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>colors</code></td><td>چرخه رنگ پس‌زمینه — فیروزه‌ای / مشکی / سفید / آبی تیره</td></tr>
+        <tr><td><code>wordStartScale</code></td><td>مقیاس اولیه کلمه (۱.۵ = بزرگ، ضربه slam)</td></tr>
+        <tr><td><code>wordRotation</code></td><td>چرخش اولیه کلمه (۸ درجه = کمی کج، حس انرژی)</td></tr>
+        <tr><td><code>baseBgSwap</code></td><td>رنگ پایه در نیمه راه پرده عوض می‌شود</td></tr>
+      </tbody>
+    </table>
+
+    <h3>⚠️ قوانین کلیدی</h3>
+    <ul>
+      <li><code>wipeDur</code> نباید بیشتر از <code>sceneDur</code> باشد</li>
+      <li><code>wordRatio * wipeDur + wordIn</code> نباید بیشتر از <code>sceneDur - wordOut</code> باشد</li>
+      <li>برای <code>stagger: { from: 'random' }</code> در GSAP، ترتیب قابل تکرار است (seed داخلی)</li>
+      <li>هرگز <code>clip-path</code> را با <code>will-change: clip-path</code> روی بیش از ۱۰ پرده هم‌زمان نکنید</li>
+      <li>برای HyperFrames: تایم‌لاین را <code>paused: true</code> کنید و در <code>window.__timelines</code> ثبت کنید</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+// —— ۴ دسته × ۱۰ ترانزیشن = ۴۰ ——
+const CATALOG = {
+  'دایره‌ای و شعاعی': {
+    icon: '⭕',
+    items: [
+      { id: 'circle-center',  name: 'دایره از مرکز',       tech: 'clip-path: circle()' },
+      { id: 'circle-corner',  name: 'دایره از گوشه',       tech: 'clip-path: circle() at corner' },
+      { id: 'circle-edge',    name: 'دایره از لبه',        tech: 'clip-path: circle() at edge' },
+      { id: 'circle-two',     name: 'دو دایره هم‌زمان',    tech: 'two circles' },
+      { id: 'circle-out',     name: 'دایره به بیرون',      tech: 'inverse circle' },
+      { id: 'iris',           name: 'ایریس (مردمک)',       tech: 'iris mask' },
+      { id: 'radial-lines',   name: 'خطوط شعاعی',          tech: 'radial bars' },
+      { id: 'spiral',         name: 'مارپیچ',              tech: 'rotating conic' },
+      { id: 'pulse-circle',   name: 'دایره ضربانی',        tech: 'scale pulse' },
+      { id: 'ring-expand',    name: 'حلقه گسترده',         tech: 'ring scale' },
+    ]
+  },
+  'خطی و نواری': {
+    icon: '➡️',
+    items: [
+      { id: 'bar-horizontal', name: 'پرده افقی',           tech: 'scaleX 0→1' },
+      { id: 'bar-vertical',   name: 'پرده عمودی',          tech: 'scaleY 0→1' },
+      { id: 'bar-diagonal',   name: 'پرده مورب ۴۵°',       tech: 'rotate + scaleX' },
+      { id: 'split-halves',   name: 'دو نیمه',             tech: 'top+bottom meet' },
+      { id: 'split-sides',    name: 'دو طرف',              tech: 'left+right meet' },
+      { id: 'stripes',        name: 'نوارهای افقی',        tech: 'stagger translateX' },
+      { id: 'stripes-v',      name: 'نوارهای عمودی',       tech: 'stagger translateY' },
+      { id: 'blinds',         name: 'کرکره‌ای',            tech: 'scaleY stagger' },
+      { id: 'wipe-left',      name: 'پاک‌کردن از چپ',      tech: 'clip-path inset' },
+      { id: 'wipe-right',     name: 'پاک‌کردن از راست',    tech: 'clip-path inset' },
+    ]
+  },
+  'هندسی و شبکه‌ای': {
+    icon: '🔷',
+    items: [
+      { id: 'triangle',       name: 'مثلث از گوشه',        tech: 'polygon corner' },
+      { id: 'triangle-center',name: 'مثلث از مرکز',        tech: 'polygon center' },
+      { id: 'diamond',        name: 'الماس',               tech: 'polygon diamond' },
+      { id: 'hexagon',        name: 'شش‌ضلعی',             tech: 'polygon hex' },
+      { id: 'checkerboard',   name: 'شطرنجی',              tech: 'stagger scale' },
+      { id: 'grid-fill',      name: 'پر کردن شبکه',        tech: 'grid scale' },
+      { id: 'pixelate',       name: 'پیکسلی',              tech: 'random stagger' },
+      { id: 'cross',          name: 'صلیب',                tech: 'polygon cross' },
+      { id: 'zigzag',         name: 'زیگزاگ',              tech: 'stagger diagonal' },
+      { id: 'mosaic',         name: 'موزاییک',             tech: 'varying stagger' },
+    ]
+  },
+  'حرکتی و افکت': {
+    icon: '🌀',
+    items: [
+      { id: 'rotate',         name: 'چرخش ۹۰ درجه',        tech: 'rotate + scale' },
+      { id: 'zoom-in',        name: 'زوم به داخل',          tech: 'scale 0→1' },
+      { id: 'zoom-out',       name: 'زوم به بیرون',         tech: 'scale 3→1' },
+      { id: 'slide-in',       name: 'سر خوردن',             tech: 'translateX' },
+      { id: 'flip',           name: 'چرخش سه‌بعدی',         tech: 'rotateY 3D' },
+      { id: 'glitch',         name: 'گلیچ',                tech: 'RGB split' },
+      { id: 'whip-pan',       name: 'وویپ پن',              tech: 'fast pan + blur' },
+      { id: 'blur-in',        name: 'محو شدن از بلور',      tech: 'filter blur' },
+      { id: 'scale-flash',    name: 'فلاش مقیاسی',          tech: 'scale pulse' },
+      { id: 'reveal-mask',    name: 'ماسک لایه‌ای',         tech: 'mask-image' },
+    ]
+  }
+};
+
+const COLORS = ['#22d3ee', '#0a1628', '#f0fdfa', '#0e7490', '#67e8f9', '#164e63'];
+let colorIdx = 0;
+let currentPreviewTl = null;
+let lastClickTime = 0;
+let lastClickId = null;
+
+// —— State ——
+const state = {
+  selected: new Set(),
+};
+
+// —— رندر دسته‌ها ——
+const categoriesEl = document.getElementById('categories');
+
+Object.entries(CATALOG).forEach(([catName, catData]) => {
+  const catEl = document.createElement('div');
+  catEl.className = 'category';
+  catEl.innerHTML = `
+    <h2>${catData.icon} ${catName} <span class="count">${catData.items.length}</span></h2>
+    <div class="grid"></div>
+  `;
+  const grid = catEl.querySelector('.grid');
+
+  catData.items.forEach(item => {
+    const itemEl = document.createElement('div');
+    itemEl.className = 'transition-item';
+    itemEl.dataset.id = item.id;
+    itemEl.dataset.name = item.name;
+    itemEl.dataset.tech = item.tech;
+    itemEl.dataset.category = catName;
+    itemEl.innerHTML = `
+      <span class="play-icon">▶</span>
+      <div class="name">${item.name}</div>
+      <div class="tech">${item.tech}</div>
+    `;
+    itemEl.addEventListener('click', (e) => handleItemClick(itemEl, e));
+    grid.appendChild(itemEl);
+  });
+
+  categoriesEl.appendChild(catEl);
+});
+
+function handleItemClick(el, e) {
+  const id = el.dataset.id;
+  const now = Date.now();
+
+  // Double-click or second click quickly → toggle selection
+  // Single click → always play preview
+  playPreview(id, el.dataset.name);
+
+  if (now - lastClickTime < 350 && lastClickId === id) {
+    // double click → toggle select
+    toggleItem(el);
+  } else {
+    // single click only previews; if already selected keep it
+    // optional: also select on first click after short delay? keep simple
+  }
+
+  lastClickTime = now;
+  lastClickId = id;
+}
+
+function toggleItem(el) {
+  const id = el.dataset.id;
+  if (state.selected.has(id)) {
+    state.selected.delete(id);
+    el.classList.remove('selected');
+  } else {
+    state.selected.add(id);
+    el.classList.add('selected');
+  }
+  updateUI();
+}
+
+function updateUI() {
+  const count = state.selected.size;
+  document.getElementById('selectedCount').textContent = count;
+  document.getElementById('generateBtn').disabled = count === 0;
+  document.getElementById('settingsPanel').classList.toggle('active', count > 0);
+}
+
+// —— Live Preview Engine ——
+function clearStage() {
+  const stage = document.getElementById('previewStage');
+  // keep base-bg and word
+  const base = stage.querySelector('.base-bg');
+  const word = stage.querySelector('.word');
+  stage.innerHTML = '';
+  stage.appendChild(base);
+  stage.appendChild(word);
+  gsap.set(word, { opacity: 0, scale: 1, rotation: 0, x: 0, y: 0, filter: 'none' });
+  gsap.set(base, { background: '#0a1628' });
+}
+
+function getNextColor() {
+  colorIdx = (colorIdx + 1) % COLORS.length;
+  return COLORS[colorIdx];
+}
+
+function playPreview(id, name) {
+  if (currentPreviewTl) {
+    currentPreviewTl.kill();
+    currentPreviewTl = null;
+  }
+  clearStage();
+
+  document.getElementById('previewLabel').textContent = name;
+  document.querySelectorAll('.transition-item').forEach(el => el.classList.remove('previewing'));
+  const activeEl = document.querySelector(`.transition-item[data-id="${id}"]`);
+  if (activeEl) activeEl.classList.add('previewing');
+
+  const stage = document.getElementById('previewStage');
+  const word = document.getElementById('previewWord');
+  const base = stage.querySelector('.base-bg');
+  const color = getNextColor();
+  const dur = 1.1;
+  const wordIn = 0.28;
+  const wordRatio = 0.5;
+
+  const tl = gsap.timeline({
+    onComplete: () => {
+      setTimeout(() => {
+        if (currentPreviewTl === tl) {
+          gsap.to(word, { opacity: 0, duration: 0.25 });
+        }
+      }, 400);
+    }
+  });
+  currentPreviewTl = tl;
+
+  // helper to create wipe layer
+  function makeWipe(extraStyle = {}) {
+    const div = document.createElement('div');
+    div.className = 'wipe-layer';
+    Object.assign(div.style, {
+      background: color,
+      ...extraStyle
+    });
+    stage.appendChild(div);
+    return div;
+  }
+
+  // —— Preview implementations ——
+  switch (id) {
+    // —— دایره‌ای ——
+    case 'circle-center': {
+      const w = makeWipe({ clipPath: 'circle(0% at 50% 50%)' });
+      tl.to(w, { clipPath: 'circle(150% at 50% 50%)', duration: dur, ease: 'power2.inOut' }, 0);
+      break;
+    }
+    case 'circle-corner': {
+      const w = makeWipe({ clipPath: 'circle(0% at 0% 0%)' });
+      tl.to(w, { clipPath: 'circle(180% at 0% 0%)', duration: dur, ease: 'power2.inOut' }, 0);
+      break;
+    }
+    case 'circle-edge': {
+      const w = makeWipe({ clipPath: 'circle(0% at 50% 0%)' });
+      tl.to(w, { clipPath: 'circle(160% at 50% 0%)', duration: dur, ease: 'power2.inOut' }, 0);
+      break;
+    }
+    case 'circle-two': {
+      const w1 = makeWipe({ clipPath: 'circle(0% at 0% 50%)' });
+      const w2 = makeWipe({ clipPath: 'circle(0% at 100% 50%)', background: COLORS[(colorIdx + 2) % COLORS.length] });
+      tl.to(w1, { clipPath: 'circle(120% at 0% 50%)', duration: dur, ease: 'power2.inOut' }, 0);
+      tl.to(w2, { clipPath: 'circle(120% at 100% 50%)', duration: dur, ease: 'power2.inOut' }, 0);
+      break;
+    }
+    case 'circle-out': {
+      const w = makeWipe({ clipPath: 'circle(150% at 50% 50%)' });
+      tl.fromTo(w, { clipPath: 'circle(150% at 50% 50%)' }, { clipPath: 'circle(0% at 50% 50%)', duration: dur, ease: 'power2.inOut' }, 0);
+      break;
+    }
+    case 'iris': {
+      const w = makeWipe({ clipPath: 'circle(0% at 50% 50%)' });
+      tl.to(w, { clipPath: 'circle(80% at 50% 50%)', duration: dur * 0.7, ease: 'power3.out' }, 0)
+        .to(w, { clipPath: 'circle(150% at 50% 50%)', duration: dur * 0.4, ease: 'power2.in' }, '-=0.1');
+      break;
+    }
+    case 'radial-lines': {
+      const n = 12;
+      for (let i = 0; i < n; i++) {
+        const angle = (i / n) * 360;
+        const bar = document.createElement('div');
+        bar.className = 'wipe-layer';
+        bar.style.cssText = `
+          background: ${color};
+          width: 8%; height: 60%;
+          left: 46%; top: 20%;
+          transform-origin: 50% 100%;
+          transform: rotate(${angle}deg) scaleY(0);
+        `;
+        stage.appendChild(bar);
+        tl.to(bar, { scaleY: 1.8, duration: dur * 0.7, ease: 'power2.out' }, i * 0.03);
+      }
+      break;
+    }
+    case 'spiral': {
+      const w = makeWipe({
+        background: `conic-gradient(from 0deg, ${color} 0%, transparent 0%)`,
+        opacity: 0
+      });
+      tl.to(w, { opacity: 1, duration: 0.15 }, 0);
+      tl.to(w, {
+        background: `conic-gradient(from 0deg, ${color} 100%, transparent 100%)`,
+        duration: dur,
+        ease: 'none'
+      }, 0);
+      break;
+    }
+    case 'pulse-circle': {
+      const w = makeWipe({
+        borderRadius: '50%',
+        width: '20%', height: '20%',
+        left: '40%', top: '40%',
+        transform: 'scale(0)'
+      });
+      tl.to(w, { scale: 8, duration: dur, ease: 'power2.out' }, 0);
+      break;
+    }
+    case 'ring-expand': {
+      const w = makeWipe({
+        borderRadius: '50%',
+        border: `18px solid ${color}`,
+        background: 'transparent',
+        width: '10%', height: '10%',
+        left: '45%', top: '45%',
+        transform: 'scale(0)'
+      });
+      tl.to(w, { scale: 12, duration: dur, ease: 'power2.out' }, 0);
+      break;
+    }
+
+    // —— خطی ——
+    case 'bar-horizontal': {
+      const w = makeWipe({ transform: 'scaleX(0)', transformOrigin: 'left center' });
+      tl.to(w, { scaleX: 1, duration: dur, ease: 'power2.inOut' }, 0);
+      break;
+    }
+    case 'bar-vertical': {
+      const w = makeWipe({ transform: 'scaleY(0)', transformOrigin: 'center top' });
+      tl.to(w, { scaleY: 1, duration: dur, ease: 'power2.inOut' }, 0);
+      break;
+    }
+    case 'bar-diagonal': {
+      const w = makeWipe({
+        transform: 'rotate(45deg) scaleX(0)',
+        transformOrigin: 'center center',
+        width: '200%', height: '200%',
+        left: '-50%', top: '-50%'
+      });
+      tl.to(w, { scaleX: 1.5, duration: dur, ease: 'power2.inOut' }, 0);
+      break;
+    }
+    case 'split-halves': {
+      const top = makeWipe({ height: '50%', top: '0', transform: 'translateY(-100%)' });
+      const bot = makeWipe({ height: '50%', top: '50%', transform: 'translateY(100%)' });
+      tl.to([top, bot], { y: 0, duration: dur, ease: 'power2.inOut' }, 0);
+      break;
+    }
+    case 'split-sides': {
+      const left = makeWipe({ width: '50%', left: '0', transform: 'translateX(-100%)' });
+      const right = makeWipe({ width: '50%', left: '50%', transform: 'translateX(100%)' });
+      tl.to([left, right], { x: 0, duration: dur, ease: 'power2.inOut' }, 0);
+      break;
+    }
+    case 'stripes': {
+      const n = 8;
+      for (let i = 0; i < n; i++) {
+        const s = document.createElement('div');
+        s.className = 'wipe-layer';
+        s.style.cssText = `background:${color}; height:${100/n}%; top:${(i*100)/n}%; transform:translateX(-100%);`;
+        stage.appendChild(s);
+        tl.to(s, { x: 0, duration: dur * 0.7, ease: 'power2.out' }, i * 0.04);
+      }
+      break;
+    }
+    case 'stripes-v': {
+      const n = 10;
+      for (let i = 0; i < n; i++) {
+        const s = document.createElement('div');
+        s.className = 'wipe-layer';
+        s.style.cssText = `background:${color}; width:${100/n}%; left:${(i*100)/n}%; transform:translateY(-100%);`;
+        stage.appendChild(s);
+        tl.to(s, { y: 0, duration: dur * 0.7, ease: 'power2.out' }, i * 0.03);
+      }
+      break;
+    }
+    case 'blinds': {
+      const n = 9;
+      for (let i = 0; i < n; i++) {
+        const s = document.createElement('div');
+        s.className = 'wipe-layer';
+        s.style.cssText = `background:${color}; height:${100/n}%; top:${(i*100)/n}%; transform:scaleY(0); transform-origin:top;`;
+        stage.appendChild(s);
+        tl.to(s, { scaleY: 1, duration: dur * 0.6, ease: 'power2.out' }, i * 0.04);
+      }
+      break;
+    }
+    case 'wipe-left': {
+      const w = makeWipe({ clipPath: 'inset(0 100% 0 0)' });
+      tl.to(w, { clipPath: 'inset(0 0% 0 0)', duration: dur, ease: 'power2.inOut' }, 0);
+      break;
+    }
+    case 'wipe-right': {
+      const w = makeWipe({ clipPath: 'inset(0 0 0 100%)' });
+      tl.to(w, { clipPath: 'inset(0 0 0 0%)', duration: dur, ease: 'power2.inOut' }, 0);
+      break;
+    }
+
+    // —— هندسی ——
+    case 'triangle': {
+      const w = makeWipe({ clipPath: 'polygon(0 0, 0 0, 0 0)' });
+      tl.to(w, { clipPath: 'polygon(0 0, 200% 0, 0 200%)', duration: dur, ease: 'power2.inOut' }, 0);
+      break;
+    }
+    case 'triangle-center': {
+      const w = makeWipe({ clipPath: 'polygon(50% 50%, 50% 50%, 50% 50%)' });
+      tl.to(w, { clipPath: 'polygon(50% -50%, 150% 150%, -50% 150%)', duration: dur, ease: 'power2.inOut' }, 0);
+      break;
+    }
+    case 'diamond': {
+      const w = makeWipe({ clipPath: 'polygon(50% 50%, 50% 50%, 50% 50%, 50% 50%)' });
+      tl.to(w, { clipPath: 'polygon(50% -30%, 130% 50%, 50% 130%, -30% 50%)', duration: dur, ease: 'power2.inOut' }, 0);
+      break;
+    }
+    case 'hexagon': {
+      const w = makeWipe({ clipPath: 'polygon(50% 50%,50% 50%,50% 50%,50% 50%,50% 50%,50% 50%)' });
+      tl.to(w, {
+        clipPath: 'polygon(25% -20%, 75% -20%, 110% 50%, 75% 120%, 25% 120%, -10% 50%)',
+        duration: dur, ease: 'power2.inOut'
+      }, 0);
+      break;
+    }
+    case 'checkerboard':
+    case 'grid-fill':
+    case 'pixelate':
+    case 'mosaic': {
+      const cols = id === 'pixelate' ? 10 : 6;
+      const rows = id === 'pixelate' ? 6 : 4;
+      const cells = [];
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const cell = document.createElement('div');
+          cell.className = 'wipe-layer';
+          cell.style.cssText = `
+            background: ${color};
+            width: ${100 / cols}%; height: ${100 / rows}%;
+            left: ${(c * 100) / cols}%; top: ${(r * 100) / rows}%;
+            transform: scale(0);
+          `;
+          stage.appendChild(cell);
+          cells.push(cell);
+        }
+      }
+      const from = id === 'pixelate' || id === 'mosaic' ? 'random' : 'start';
+      tl.to(cells, {
+        scale: 1,
+        duration: 0.4,
+        stagger: { each: 0.03, from },
+        ease: 'power2.out'
+      }, 0);
+      break;
+    }
+    case 'cross': {
+      const h = makeWipe({ height: '18%', top: '41%', transform: 'scaleX(0)' });
+      const v = makeWipe({ width: '18%', left: '41%', transform: 'scaleY(0)' });
+      tl.to(h, { scaleX: 1, duration: dur * 0.7, ease: 'power2.out' }, 0);
+      tl.to(v, { scaleY: 1, duration: dur * 0.7, ease: 'power2.out' }, 0.05);
+      break;
+    }
+    case 'zigzag': {
+      const n = 7;
+      for (let i = 0; i < n; i++) {
+        const s = document.createElement('div');
+        s.className = 'wipe-layer';
+        const dir = i % 2 === 0 ? -100 : 100;
+        s.style.cssText = `background:${color}; height:${100/n}%; top:${(i*100)/n}%; transform:translateX(${dir}%);`;
+        stage.appendChild(s);
+        tl.to(s, { x: 0, duration: dur * 0.65, ease: 'power2.out' }, i * 0.05);
+      }
+      break;
+    }
+
+    // —— حرکتی ——
+    case 'rotate': {
+      const w = makeWipe({
+        transform: 'rotate(90deg) scale(2)',
+        transformOrigin: 'center center'
+      });
+      tl.fromTo(w, { rotate: 90, scale: 2 }, { rotate: 0, scale: 1, duration: dur, ease: 'power2.inOut' }, 0);
+      break;
+    }
+    case 'zoom-in': {
+      const w = makeWipe({ transform: 'scale(0)', borderRadius: '8px' });
+      tl.to(w, { scale: 1, duration: dur, ease: 'power3.out' }, 0);
+      break;
+    }
+    case 'zoom-out': {
+      const w = makeWipe({ transform: 'scale(3)', opacity: 0 });
+      tl.to(w, { scale: 1, opacity: 1, duration: dur, ease: 'power2.out' }, 0);
+      break;
+    }
+    case 'slide-in': {
+      const w = makeWipe({ transform: 'translateX(-100%)' });
+      tl.to(w, { x: 0, duration: dur, ease: 'power2.inOut' }, 0);
+      break;
+    }
+    case 'flip': {
+      const w = makeWipe({ transform: 'rotateY(90deg)', transformStyle: 'preserve-3d' });
+      stage.style.perspective = '800px';
+      tl.to(w, { rotateY: 0, duration: dur, ease: 'power2.inOut' }, 0);
+      break;
+    }
+    case 'glitch': {
+      const w = makeWipe({ opacity: 0 });
+      tl.to(w, { opacity: 1, duration: 0.05 }, 0);
+      tl.to(w, { x: -8, duration: 0.06 }, 0.05)
+        .to(w, { x: 10, duration: 0.05 })
+        .to(w, { x: -6, duration: 0.05 })
+        .to(w, { x: 0, duration: 0.08 });
+      const r = makeWipe({ background: '#ff0040', mixBlendMode: 'screen', opacity: 0 });
+      const b = makeWipe({ background: '#00e5ff', mixBlendMode: 'screen', opacity: 0 });
+      tl.to([r, b], { opacity: 0.35, duration: 0.08 }, 0.1)
+        .to(r, { x: -12, duration: 0.12 }, 0.1)
+        .to(b, { x: 12, duration: 0.12 }, 0.1)
+        .to([r, b], { opacity: 0, duration: 0.15 }, 0.25);
+      break;
+    }
+    case 'whip-pan': {
+      const w = makeWipe({ transform: 'translateX(-120%)', filter: 'blur(12px)' });
+      tl.to(w, { x: 0, filter: 'blur(0px)', duration: dur * 0.55, ease: 'power3.out' }, 0);
+      break;
+    }
+    case 'blur-in': {
+      const w = makeWipe({ opacity: 0, filter: 'blur(24px)' });
+      tl.to(w, { opacity: 1, filter: 'blur(0px)', duration: dur, ease: 'power2.out' }, 0);
+      break;
+    }
+    case 'scale-flash': {
+      const w = makeWipe({ transform: 'scale(0.3)', opacity: 0 });
+      tl.to(w, { scale: 1.15, opacity: 1, duration: dur * 0.45, ease: 'power3.out' }, 0)
+        .to(w, { scale: 1, duration: dur * 0.3, ease: 'power2.inOut' });
+      break;
+    }
+    case 'reveal-mask': {
+      const w = makeWipe({
+        maskImage: 'linear-gradient(90deg, transparent 0%, black 0%)',
+        WebkitMaskImage: 'linear-gradient(90deg, transparent 0%, black 0%)'
+      });
+      tl.to(w, {
+        maskImage: 'linear-gradient(90deg, transparent 100%, black 100%)',
+        WebkitMaskImage: 'linear-gradient(90deg, transparent 100%, black 100%)',
+        duration: dur,
+        ease: 'power2.inOut'
+      }, 0);
+      break;
+    }
+    default: {
+      const w = makeWipe({ opacity: 0 });
+      tl.to(w, { opacity: 1, duration: dur * 0.6 }, 0);
+    }
+  }
+
+  // word slam
+  tl.fromTo(word,
+    { opacity: 0, scale: 1.6, rotation: 8 },
+    { opacity: 1, scale: 1, rotation: 0, duration: wordIn, ease: 'power4.out' },
+    dur * wordRatio
+  );
+
+  // mid-way base color swap
+  tl.to(base, { background: color, duration: 0.01 }, dur * 0.45);
+}
+
+// —— تولید پرامپت ——
+document.getElementById('generateBtn').addEventListener('click', () => {
+  const settings = {
+    sceneDur: parseFloat(document.getElementById('sceneDur').value),
+    wipeDur: parseFloat(document.getElementById('wipeDur').value),
+    wipeEase: document.getElementById('wipeEase').value,
+    wordRatio: parseFloat(document.getElementById('wordRatio').value),
+    wordIn: parseFloat(document.getElementById('wordIn').value),
+    wordOut: parseFloat(document.getElementById('wordOut').value),
+    wordEase: document.getElementById('wordEase').value,
+    wordScale: parseFloat(document.getElementById('wordScale').value),
+    wordRotation: parseFloat(document.getElementById('wordRotation').value),
+  };
+
+  if (settings.wipeDur > settings.sceneDur) {
+    alert('⚠️ مدت پرده (wipeDur) نباید بیشتر از مدت صحنه (sceneDur) باشد.');
+    return;
+  }
+  const wordEnd = settings.wipeDur * settings.wordRatio + settings.wordIn;
+  if (wordEnd > settings.sceneDur - settings.wordOut) {
+    alert('⚠️ ورود کلمه + خروج از مدت صحنه بیشتر می‌شود. تنظیمات را اصلاح کنید.');
+    return;
+  }
+
+  const selectedItems = [];
+  document.querySelectorAll('.transition-item.selected').forEach(el => {
+    selectedItems.push({
+      id: el.dataset.id,
+      name: el.dataset.name,
+      tech: el.dataset.tech,
+      category: el.dataset.category,
+    });
+  });
+
+  const prompt = buildPrompt(selectedItems, settings);
+  document.getElementById('outputText').textContent = prompt;
+  document.getElementById('outputPanel').classList.add('active');
+  document.getElementById('outputPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+
+function buildPrompt(items, s) {
+  const totalDur = (items.length * s.sceneDur).toFixed(2);
+  const lines = [];
+
+  lines.push('# درخواست ساخت ویدیو موشن Kinetic Slam');
+  lines.push('');
+  lines.push('## مشخصات کلی');
+  lines.push(`- تعداد صحنه‌ها: ${items.length}`);
+  lines.push(`- مدت هر صحنه: ${s.sceneDur}s`);
+  lines.push(`- مدت کل ویدیو: ${totalDur}s`);
+  lines.push(`- فرمت: HTML تک‌فایلی با GSAP 3.12+ (CDN)`);
+  lines.push(`- رنگ‌های پس‌زمینه (چرخه): #22D3EE (فیروزه‌ای), #0A0A0A (مشکی), #F5F5F5 (سفید), #0E7490 (آبی تیره)`);
+  lines.push('');
+  lines.push('## تنظیمات انیمیشن (مشترک همه صحنه‌ها)');
+  lines.push('```js');
+  lines.push(`const SETTINGS = {`);
+  lines.push(`  sceneDur: ${s.sceneDur},`);
+  lines.push(`  wipeDur: ${s.wipeDur},`);
+  lines.push(`  wipeEase: '${s.wipeEase}',`);
+  lines.push(`  wordRatio: ${s.wordRatio},`);
+  lines.push(`  wordIn: ${s.wordIn},`);
+  lines.push(`  wordOut: ${s.wordOut},`);
+  lines.push(`  wordEase: '${s.wordEase}',`);
+  lines.push(`  wordStartScale: ${s.wordScale},`);
+  lines.push(`  wordStartRotation: ${s.wordRotation},`);
+  lines.push(`};`);
+  lines.push('```');
+  lines.push('');
+  lines.push('## ترانزیشن‌های مورد نیاز');
+  lines.push('');
+
+  let currentCat = '';
+  items.forEach((item, i) => {
+    if (item.category !== currentCat) {
+      currentCat = item.category;
+      lines.push(`### دسته: ${currentCat}`);
+      lines.push('');
+    }
+    lines.push(`${i + 1}. **${item.name}** (\`${item.id}\`)`);
+    lines.push(`   - تکنیک: \`${item.tech}\``);
+    lines.push(`   - زمان شروع در تایم‌لاین: \`${(i * s.sceneDur).toFixed(2)}s\``);
+    lines.push('');
+  });
+
+  lines.push('## قوانین پیاده‌سازی');
+  lines.push('1. هر صحنه یک تابع مستقل `buildScene_<id>(t0, color, text)` داشته باشد.');
+  lines.push('2. یک `masterTl = gsap.timeline()` بساز که همه صحنه‌ها را پشت سر هم بچیند.');
+  lines.push('3. برای هر صحنه:');
+  lines.push(`   - یک \`div.wipe-panel\` با رنگ جدید ساخته شود.`);
+  lines.push(`   - انیمیشن پرده با \`wipeDur\` و \`wipeEase\` اجرا شود.`);
+  lines.push(`   - رنگ پایه (\`#base-bg\`) در \`t0 + wipeDur * 0.5\` عوض شود.`);
+  lines.push(`   - کلمه در \`t0 + wipeDur * wordRatio\` با \`wordStartScale\`, \`wordStartRotation\` و \`wordEase\` ظاهر شود.`);
+  lines.push(`   - کلمه در \`t0 + sceneDur - wordOut\` محو شود.`);
+  lines.push(`   - در پایان صحنه (\`t0 + sceneDur\`) همه عناصر صحنه حذف شوند.`);
+  lines.push('4. از `will-change: transform, clip-path` برای پرده استفاده شود.');
+  lines.push('5. هیچ‌کدام از انیمیشن‌ها نباید از `Date.now()` یا `Math.random()` استفاده کنند (قابل تکرار).');
+  lines.push('');
+  lines.push('## خروجی مورد انتظار');
+  lines.push('- یک فایل `index.html` کامل با CSS داخلی و اسکریپت GSAP.');
+  lines.push('- کد باید مستقیماً در مرورگر باز شود و ویدیو را پخش کند.');
+  lines.push('- یک `data-label` در گوشه پایین-چپ برای نمایش نام ترانزیشن فعلی.');
+  lines.push('');
+  lines.push('## نکات HyperFrames (اختیاری)');
+  lines.push('اگر قرار است با HyperFrames رندر شود:');
+  lines.push('- تایم‌لاین را `paused: true` کنید.');
+  lines.push('- در `window.__timelines["composition-id"]` ثبت کنید.');
+  lines.push('- از `data-composition-id` و `data-duration` روی ریشه استفاده کنید.');
+
+  return lines.join('\n');
+}
+
+// —— کپی ——
+document.getElementById('copyBtn').addEventListener('click', async () => {
+  const text = document.getElementById('outputText').textContent;
+  const btn = document.getElementById('copyBtn');
+  try {
+    await navigator.clipboard.writeText(text);
+    btn.textContent = '✓ کپی شد!';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.textContent = 'کپی به کلیپ‌بورد';
+      btn.classList.remove('copied');
+    }, 2000);
+  } catch (e) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    ta.remove();
+    btn.textContent = '✓ کپی شد!';
+    setTimeout(() => { btn.textContent = 'کپی به کلیپ‌بورد'; }, 2000);
+  }
+});
+
+// —— پاک کردن ——
+document.getElementById('clearBtn').addEventListener('click', () => {
+  state.selected.clear();
+  document.querySelectorAll('.transition-item.selected').forEach(el => el.classList.remove('selected'));
+  document.getElementById('outputPanel').classList.remove('active');
+  updateUI();
+});
+
+// —— پاپ‌آپ راهنما ——
+const modalBackdrop = document.getElementById('modalBackdrop');
+document.getElementById('helpBtn').addEventListener('click', () => modalBackdrop.classList.add('active'));
+document.getElementById('modalClose').addEventListener('click', () => modalBackdrop.classList.remove('active'));
+modalBackdrop.addEventListener('click', (e) => {
+  if (e.target === modalBackdrop) modalBackdrop.classList.remove('active');
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') modalBackdrop.classList.remove('active');
+});
+
+// Also allow selecting with Ctrl/Cmd + click for convenience
+document.addEventListener('click', (e) => {
+  const item = e.target.closest('.transition-item');
+  if (!item) return;
+  if (e.ctrlKey || e.metaKey) {
+    toggleItem(item);
+  }
+});
+</script>
+</body>
+</html>
